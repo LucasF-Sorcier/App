@@ -2,28 +2,49 @@
 <html lang="fr">
 <head>
   <link rel="stylesheet" href="login.css" />
-<meta charset="UTF-8" />
-<title>Connexion</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 2em; }
-  input, button { margin: 0.5em 0; padding: 0.5em; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Connexion</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    input, button { margin: 0.5em 0; padding: 0.5em; }
+  </style>
 </head>
 <body>
-<h1>Connexion</h1>
-<input type="text" id="username" placeholder="Ton pseudo" />
-<button id="login-btn">Se connecter</button>
+  <h1>Connexion</h1>
+  <input type="text" id="username" placeholder="Ton pseudo" />
+  <button id="login-btn">Se connecter / Créer un compte</button>
+  <p id="message" style="color: green;"></p>
 
-<script>
-document.getElementById('login-btn').addEventListener('click', () => {
-  const user = document.getElementById('username').value.trim();
-  if (!user) {
-    alert('Tape un pseudo');
-    return;
-  }
-  localStorage.setItem('currentUser', user);
-  window.location.href = 'parties.html';
-});
-</script>
+  <script>
+    document.getElementById('login-btn').addEventListener('click', () => {
+      const user = document.getElementById('username').value.trim();
+      const message = document.getElementById('message');
+
+      if (!user) {
+        alert('Tape un pseudo');
+        return;
+      }
+
+      // Liste des utilisateurs enregistrés (dans localStorage)
+      let users = JSON.parse(localStorage.getItem('users') || '[]');
+
+      // Vérifier si le pseudo existe déjà
+      if (!users.includes(user)) {
+        users.push(user); // Nouveau joueur → on l’ajoute
+        localStorage.setItem('users', JSON.stringify(users));
+        message.textContent = `Compte créé pour ${user}`;
+      } else {
+        message.textContent = `Bienvenue ${user}`;
+      }
+
+      // Stocker le pseudo comme "utilisateur courant"
+      localStorage.setItem('currentUser', user);
+
+      // Redirection
+      setTimeout(() => {
+        window.location.href = 'parties.html';
+      }, 1000);
+    });
+  </script>
 </body>
 </html>

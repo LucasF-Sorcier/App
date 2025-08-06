@@ -59,12 +59,11 @@
   let allAnswers = []; // {questionIndex, user, answer}
   let userVotes = {};  // {questionIndex: answerUser} voté par currentUser
 
-  let currentUser = prompt("Entrez votre pseudo :").trim();
-  if (!currentUser) {
-    alert("Pseudo requis");
-    location.reload();
-  }
-  document.getElementById('user-info').textContent = `Connecté en tant que : ${currentUser}`;
+  let currentUser = localStorage.getItem("currentUser");
+if (!currentUser) {
+  alert("Tu dois être connecté pour jouer !");
+  window.location.href = "login.html";
+}
 
   // Elements DOM
   const phaseCreate = document.getElementById('phase-create');
