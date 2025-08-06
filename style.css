@@ -1,0 +1,32 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: auto;
+  padding: 1em;
+  background: #f0f0f0;
+}
+
+h1 {
+  color: #333;
+}
+
+a {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+input[type="text"] {
+  padding: 0.4em;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  margin-bottom: 0.5em;
+}
+button {
+  padding: 0.5em 1em;
+  cursor: pointer;
+}
