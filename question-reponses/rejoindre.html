@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="stylesheet" href="rejoindre.css" />
+<meta charset="UTF-8" />
+<title>Rejoindre une partie</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2em; }
+  input, button { margin: 0.5em 0; padding: 0.5em; }
+  #message { font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Rejoindre une partie</h1>
+<div id="user-info"></div>
+
+<label for="code-input">Code de la partie :</label><br />
+<input type="text" id="code-input" placeholder="Ex: AB12CD" maxlength="6" style="text-transform: uppercase;" /><br />
+<button id="join-btn">Rejoindre</button>
+<p id="message"></p>
+<p><a href="question-reponses/parties.html">Créer une partie</a></p>
+<p><a href="login.html">Se déconnecter</a></p>
+
+<script>
+function getCurrentUser() {
+  return localStorage.getItem('currentUser');
+}
+
+function redirectToLogin() {
+  window.location.href = 'login.html';
+}
+
+function loadGames() {
+  return JSON.parse(localStorage.getItem('games')) || [];
+}
+
+function saveGames(games) {
+  localStorage.setItem('games', JSON.stringify(games));
+}
+
+function cleanupOldGames() {
+  const games = loadGames();
+  const now = Date.now();
+  const maxIdle = 30 * 1000; // 30 sec
+
+  const activeGames = games.filter(g => g.lastActive && (now - g.lastActive) <= maxIdle);
+
+  if (activeGames.length !== games.length) {
+    saveGames(activeGames);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cleanupOldGames();
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    redirectToLogin();
+    return;
+  }
+  document.getElementById('user-info').innerHTML = `Connecté en tant que <strong>${currentUser}</strong>`;
+
+  const codeInput = document.getElementById('code-input');
+  const joinBtn = document.getElementById('join-btn');
+  const message = document.getElementById('message');
+
+  joinBtn.addEventListener('click', () => {
+    let code = codeInput.value.trim().toUpperCase();
+    if (code.length !== 6) {
+      message.style.color = 'red';
+      message.textContent = 'Le code doit faire 6 caractères.';
+      return;
+    }
+
+    const games = loadGames();
+    const game = games.find(g => g.code === code);
+
+    if (!game) {
+      message.style.color = 'red';
+      message.textContent = 'Aucune partie ne correspond à ce code.';
+      return;
+    }
+
+    game.lastActive = Date.now();
+    saveGames(games);
+
+    localStorage.setItem('currentGame', game.id);
+    window.location.href = 'jeu.html';
+  });
+});
+</script>
+</body>
+</html>

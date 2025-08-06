@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="stylesheet" href="login.css" />
+<meta charset="UTF-8" />
+<title>Connexion</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2em; }
+  input, button { margin: 0.5em 0; padding: 0.5em; }
+</style>
+</head>
+<body>
+<h1>Connexion</h1>
+<input type="text" id="username" placeholder="Ton pseudo" />
+<button id="login-btn">Se connecter</button>
+
+<script>
+document.getElementById('login-btn').addEventListener('click', () => {
+  const user = document.getElementById('username').value.trim();
+  if (!user) {
+    alert('Tape un pseudo');
+    return;
+  }
+  localStorage.setItem('currentUser', user);
+  window.location.href = 'parties.html';
+});
+</script>
+</body>
+</html>

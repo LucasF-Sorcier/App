@@ -1,19 +1,41 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Menu principal</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="index.css" />
+<meta charset="UTF-8" />
+<title>Menu Principal</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2em; }
+  nav ul { list-style: none; padding: 0; }
+  nav li { margin: 0.5em 0; }
+  button { margin-left: 1em; }
+</style>
 </head>
 <body>
-  <h1>🎮 Mini-jeux entre amis</h1>
-  <p>Choisis un jeu pour commencer :</p>
-
+<h1>Mini-jeux entre amis</h1>
+<div id="user-info"></div>
+<nav>
   <ul>
-    <li><a href="questionnaire/creer-partie.html">📝 Créer un questionnaire</a></li>
-    <!-- Tu pourras ajouter plus tard : -->
-    <!-- <li><a href="action-verite/index.html">🤔 Action ou Vérité</a></li> -->
-    <!-- <li><a href="blindtest/index.html">🎧 Blind Test</a></li> -->
+    <li><a href="question-reponses/parties.html">Jouer au Questionnaire</a></li>
+    <!-- Ici tu pourras ajouter d'autres mini-jeux -->
   </ul>
+</nav>
+
+<script>
+function afficherUtilisateur() {
+  const userInfo = document.getElementById('user-info');
+  const currentUser = localStorage.getItem('currentUser');
+  if (currentUser) {
+    userInfo.innerHTML = `Connecté en tant que <strong>${currentUser}</strong> <button id="logout">Déconnexion</button>`;
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      window.location.reload();
+    });
+  } else {
+    userInfo.innerHTML = `<a href="login.html">Se connecter / S'inscrire</a>`;
+  }
+}
+afficherUtilisateur();
+</script>
 </body>
 </html>

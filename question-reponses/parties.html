@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="stylesheet" href="parties.css" />
+<meta charset="UTF-8" />
+<title>Créer une partie</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2em; }
+  input, button { margin: 0.5em 0; padding: 0.5em; }
+</style>
+</head>
+<body>
+<h1>Créer une partie</h1>
+<div id="user-info"></div>
+
+<label for="new-game-name">Nom de la partie :</label><br />
+<input type="text" id="new-game-name" placeholder="Nom de la partie" /><br />
+<button id="create-game">Créer la partie</button>
+
+<p id="msg-create" style="font-weight: bold;"></p>
+<p id="show-code" style="font-size: 1.2em; font-weight: bold;"></p>
+
+<p><a href="question-reponses/rejoindre.html">J’ai un code de partie, je veux rejoindre</a></p>
+<p><a href="login.html">Se déconnecter</a></p>
+
+<script>
+function getCurrentUser() {
+  return localStorage.getItem('currentUser');
+}
+
+function redirectToLogin() {
+  window.location.href = 'login.html';
+}
+
+function generateCode(length=6) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for(let i=0; i<length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function loadGames() {
+  return JSON.parse(localStorage.getItem('games')) || [];
+}
+
+function saveGames(games) {
+  localStorage.setItem('games', JSON.stringify(games));
+}
+
+function cleanupOldGames() {
+  const games = loadGames();
+  const now = Date.now();
+  const maxIdle = 30 * 1000; // 30 sec
+
+  const activeGames = games.filter(g => g.lastActive && (now - g.lastActive) <= maxIdle);
+
+  if (activeGames.length !== games.length) {
+    saveGames(activeGames);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cleanupOldGames();
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    redirectToLogin();
+    return;
+  }
+  document.getElementById('user-info').innerHTML = `Connecté en tant que <strong>${currentUser}</strong>`;
+
+  const createBtn = document.getElementById('create-game');
+  const nameInput = document.getElementById('new-game-name');
+  const msgCreate = document.getElementById('msg-create');
+  const showCode = document.getElementById('show-code');
+
+  createBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      msgCreate.style.color = 'red';
+      msgCreate.textContent = 'Donne un nom à ta partie.';
+      showCode.textContent = '';
+      return;
+    }
+
+    const games = loadGames();
+    if (games.find(g => g.name === name)) {
+      msgCreate.style.color = 'red';
+      msgCreate.textContent = 'Une partie avec ce nom existe déjà.';
+      showCode.textContent = '';
+      return;
+    }
+
+    let code;
+    do {
+      code = generateCode();
+    } while (games.find(g => g.code === code));
+
+    const id = 'g_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const now = Date.now();
+    const newGame = { id, name, code, creator: currentUser, lastActive: now };
+    games.push(newGame);
+    saveGames(games);
+
+    msgCreate.style.color = 'green';
+    msgCreate.textContent = `Partie créée ! Partage ce code :`;
+    showCode.textContent = code;
+
+    nameInput.value = '';
+  });
+});
+</script>
+</body>
+</html>

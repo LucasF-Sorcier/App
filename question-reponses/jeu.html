@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <link rel="stylesheet" href="jeu.css" />
+<meta charset="UTF-8" />
+<title>Questionnaire avec vote et classement</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 1em; }
+  .hidden { display: none; }
+  label { display: block; margin: 0.3em 0; }
+  table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+  table { margin-top: 1em; width: 100%; max-width: 600px; }
+  button { margin-top: 1em; padding: 0.5em 1em; }
+</style>
+</head>
+<body>
+
+<h1>Jeu Questionnaire avec vote</h1>
+
+<div id="user-info"></div>
+
+<!-- Phase création -->
+<div id="phase-create">
+  <h2>Ajouter une question</h2>
+  <input type="text" id="new-question" placeholder="Écris ta question" size="50" />
+  <button id="add-question-btn">Ajouter</button>
+  <p id="msg-add-question" style="color: green;"></p>
+  <button id="start-game-btn">Démarrer le jeu</button>
+</div>
+
+<!-- Phase réponse -->
+<div id="phase-play" class="hidden">
+  <h2>Réponds aux questions</h2>
+  <p id="question-text"></p>
+  <input type="text" id="answer-input" placeholder="Ta réponse" />
+  <button id="submit-answer-btn">Valider</button>
+  <p id="msg-answer" style="color: green;"></p>
+</div>
+
+<!-- Phase vote -->
+<div id="phase-vote" class="hidden">
+  <h2>Vote pour les meilleures réponses</h2>
+  <div id="vote-question-container"></div>
+  <button id="submit-votes-btn">Valider tous mes votes</button>
+  <p id="msg-vote" style="color: green;"></p>
+</div>
+
+<!-- Phase résultats -->
+<div id="phase-results" class="hidden">
+  <h2>Classement final</h2>
+  <div id="results"></div>
+  <button id="btn-restart">Retour au menu</button>
+</div>
+
+<script>
+(() => {
+  let questions = [];
+  let currentQuestionIndex = 0;
+  let allAnswers = []; // {questionIndex, user, answer}
+  let userVotes = {};  // {questionIndex: answerUser} voté par currentUser
+
+  let currentUser = prompt("Entrez votre pseudo :").trim();
+  if (!currentUser) {
+    alert("Pseudo requis");
+    location.reload();
+  }
+  document.getElementById('user-info').textContent = `Connecté en tant que : ${currentUser}`;
+
+  // Elements DOM
+  const phaseCreate = document.getElementById('phase-create');
+  const phasePlay = document.getElementById('phase-play');
+  const phaseVote = document.getElementById('phase-vote');
+  const phaseResults = document.getElementById('phase-results');
+
+  const newQuestionInput = document.getElementById('new-question');
+  const addQuestionBtn = document.getElementById('add-question-btn');
+  const msgAddQuestion = document.getElementById('msg-add-question');
+  const startGameBtn = document.getElementById('start-game-btn');
+
+  const questionText = document.getElementById('question-text');
+  const answerInput = document.getElementById('answer-input');
+  const submitAnswerBtn = document.getElementById('submit-answer-btn');
+  const msgAnswer = document.getElementById('msg-answer');
+
+  const voteContainer = document.getElementById('vote-question-container');
+  const submitVotesBtn = document.getElementById('submit-votes-btn');
+  const msgVote = document.getElementById('msg-vote');
+
+  const resultsDiv = document.getElementById('results');
+  const btnRestart = document.getElementById('btn-restart');
+
+  function showPhase(name) {
+    phaseCreate.classList.add('hidden');
+    phasePlay.classList.add('hidden');
+    phaseVote.classList.add('hidden');
+    phaseResults.classList.add('hidden');
+    if (name === 'create') phaseCreate.classList.remove('hidden');
+    else if (name === 'play') phasePlay.classList.remove('hidden');
+    else if (name === 'vote') phaseVote.classList.remove('hidden');
+    else if (name === 'results') phaseResults.classList.remove('hidden');
+  }
+
+  // Ajouter question
+  addQuestionBtn.onclick = () => {
+    const q = newQuestionInput.value.trim();
+    if (!q) {
+      msgAddQuestion.style.color = 'red';
+      msgAddQuestion.textContent = "La question ne peut pas être vide.";
+      return;
+    }
+    questions.push(q);
+    msgAddQuestion.style.color = 'green';
+    msgAddQuestion.textContent = `Question ajoutée (total ${questions.length})`;
+    newQuestionInput.value = '';
+  };
+
+  // Démarrer jeu
+  startGameBtn.onclick = () => {
+    if (questions.length === 0) {
+      alert("Ajoute au moins une question !");
+      return;
+    }
+    allAnswers = [];
+    userVotes = {};
+    currentQuestionIndex = 0;
+    showPhase('play');
+    afficherQuestion();
+  };
+
+  // Afficher question pour réponse
+  function afficherQuestion() {
+    if (currentQuestionIndex >= questions.length) {
+      // Fin phase réponses, passer au vote ou résultats en solo
+      currentQuestionIndex = 0;
+
+      // On regarde si d'autres joueurs ont répondu aux questions
+      const autresReponses = allAnswers.filter(a => a.user !== currentUser);
+
+      if (autresReponses.length === 0) {
+        // Joueur seul -> on skip le vote et on affiche résultats directement
+        showPhase('results');
+        afficherResultats(true);
+      } else {
+        if (!aRepondu(currentUser)) {
+          alert("Tu dois répondre à toutes les questions avant de voter.");
+          currentQuestionIndex = 0;
+          return;
+        }
+        showPhase('vote');
+        afficherVote();
+      }
+      return;
+    }
+    questionText.textContent = questions[currentQuestionIndex];
+    answerInput.value = '';
+    msgAnswer.textContent = '';
+  }
+
+  // Vérifier si user a répondu à toutes les questions
+  function aRepondu(user) {
+    const reponsesUser = allAnswers.filter(a => a.user === user);
+    return reponsesUser.length === questions.length;
+  }
+
+  // Valider réponse
+  submitAnswerBtn.onclick = () => {
+    const answer = answerInput.value.trim();
+    if (!answer) {
+      msgAnswer.style.color = 'red';
+      msgAnswer.textContent = "Réponse vide interdite.";
+      return;
+    }
+    // Vérifier si déjà répondu à cette question
+    if (allAnswers.find(a => a.questionIndex === currentQuestionIndex && a.user === currentUser)) {
+      msgAnswer.style.color = 'red';
+      msgAnswer.textContent = "Tu as déjà répondu à cette question.";
+      return;
+    }
+    allAnswers.push({ questionIndex: currentQuestionIndex, user: currentUser, answer });
+    msgAnswer.style.color = 'green';
+    msgAnswer.textContent = "Réponse enregistrée !";
+    currentQuestionIndex++;
+    setTimeout(afficherQuestion, 800);
+  };
+
+  // Afficher toutes les questions avec réponses des autres joueurs pour voter
+  function afficherVote() {
+    voteContainer.innerHTML = '';
+    msgVote.textContent = '';
+
+    questions.forEach((q, qIdx) => {
+      const divQuestion = document.createElement('div');
+      divQuestion.style.marginBottom = '1em';
+
+      const h3 = document.createElement('h3');
+      h3.textContent = `Question ${qIdx + 1} : ${q}`;
+      divQuestion.appendChild(h3);
+
+      // Toutes les réponses sauf la sienne
+      const reponses = allAnswers.filter(a => a.questionIndex === qIdx && a.user !== currentUser);
+      if (reponses.length === 0) {
+        const p = document.createElement('p');
+        p.textContent = "Pas de réponses d'autres joueurs pour cette question.";
+        divQuestion.appendChild(p);
+      } else {
+        reponses.forEach((rep, i) => {
+          const label = document.createElement('label');
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = `vote-${qIdx}`;
+          radio.value = rep.user; // On vote pour l'utilisateur auteur de la réponse
+          // Si déjà voté, cocher
+          if (userVotes[qIdx] === rep.user) radio.checked = true;
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(` ${rep.answer} (de ${rep.user})`));
+          divQuestion.appendChild(label);
+        });
+      }
+      voteContainer.appendChild(divQuestion);
+    });
+  }
+
+  // Valider tous les votes du joueur
+  submitVotesBtn.onclick = () => {
+    userVotes = {};
+    let tousVotesFaits = true;
+    for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+      const choix = document.querySelector(`input[name="vote-${qIdx}"]:checked`);
+      if (!choix) {
+        tousVotesFaits = false;
+        break;
+      }
+      userVotes[qIdx] = choix.value; // user voté pour question qIdx
+    }
+    if (!tousVotesFaits) {
+      msgVote.style.color = 'red';
+      msgVote.textContent = "Tu dois voter pour chaque question.";
+      return;
+    }
+    msgVote.style.color = 'green';
+    msgVote.textContent = "Votes enregistrés !";
+
+    // Stocker votes dans localStorage pour simuler multi joueurs (optionnel)
+    localStorage.setItem(`votes_${currentUser}`, JSON.stringify(userVotes));
+    localStorage.setItem(`answers_${currentUser}`, JSON.stringify(allAnswers.filter(a => a.user === currentUser)));
+
+    showPhase('results');
+    afficherResultats(false);
+  };
+
+  // Calcul et affichage résultats
+  // param solo = true si on est seul (pas d'autres joueurs)
+  function afficherResultats(solo = false) {
+    resultsDiv.innerHTML = '';
+
+    if (solo) {
+      // Afficher toutes les réponses du joueur seul
+      const reponsesUser = allAnswers.filter(a => a.user === currentUser);
+      const ul = document.createElement('ul');
+      reponsesUser.forEach(a => {
+        const li = document.createElement('li');
+        li.textContent = `Question: "${questions[a.questionIndex]}" - Ta réponse: "${a.answer}"`;
+        ul.appendChild(li);
+      });
+      resultsDiv.appendChild(document.createTextNode("Tu es seul dans la partie. Voici tes réponses :"));
+      resultsDiv.appendChild(ul);
+      resultsDiv.appendChild(document.createElement('br'));
+      resultsDiv.appendChild(document.createTextNode("Pas de votes possibles, donc pas de classement."));
+      return;
+    }
+
+    // Récupérer toutes les réponses et votes stockés (pour simuler multi joueurs, on prend tous les votes enregistrés dans localStorage)
+    const scoreParJoueur = {};
+
+    // Récupérer tous les votes (ici uniquement currentUser)
+    const votesDeTous = [];
+    for(let i=0; i<localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(key.startsWith('votes_')){
+        const user = key.slice(6);
+        const votes = JSON.parse(localStorage.getItem(key));
+        votesDeTous.push({user,votes});
+      }
+    }
+    // Construire score par joueur (sur la base des votes reçus)
+    votesDeTous.forEach(({user,votes}) => {
+      for(const [qIdx, votedUser] of Object.entries(votes)){
+        if(!scoreParJoueur[votedUser]) scoreParJoueur[votedUser] = 0;
+        scoreParJoueur[votedUser]++;
+      }
+    });
+
+    // Affichage classement
+    const classement = Object.entries(scoreParJoueur)
+      .sort((a,b) => b[1] - a[1]);
+
+    const table = document.createElement('table');
+    const header = document.createElement('tr');
+    header.innerHTML = '<th>Joueur</th><th>Points</th>';
+    table.appendChild(header);
+
+    classement.forEach(([joueur, points]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${joueur}</td><td>${points}</td>`;
+      table.appendChild(tr);
+    });
+
+    resultsDiv.appendChild(table);
+
+    if (classement.length === 0) {
+      resultsDiv.appendChild(document.createTextNode("Aucun vote reçu."));
+    }
+  }
+
+  btnRestart.onclick = () => {
+    // Reset pour nouvelle partie
+    questions = [];
+    allAnswers = [];
+    userVotes = {};
+    currentQuestionIndex = 0;
+    newQuestionInput.value = '';
+    msgAddQuestion.textContent = '';
+    msgAnswer.textContent = '';
+    msgVote.textContent = '';
+    resultsDiv.innerHTML = '';
+    showPhase('create');
+  };
+
+  // Démarrage en mode création
+  showPhase('create');
+})();
+</script>
+
+</body>
+</html>
